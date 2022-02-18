@@ -110,7 +110,3 @@ class GiveAway(commands.Cog):
         embed.add_field(name = f"Hosted by {ctx.author.name}#{ctx.author.discriminator}", value = f"End: <t:{round(datetime.datetime.timestamp(endtime))}:R>")
         message = await ctx.send(embed = embed)
         message.add_reaction("🎉")
-
-    @tasks.loop(seconds=30)
-    async def check_for_unmute(self):
-        pass
