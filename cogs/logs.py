@@ -34,6 +34,8 @@ class Logs(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, message_before, message_after):
+        if message_before.content == message_after.content:
+            return
         try:
             embed = discord.Embed(title = "Message edited", color = 0xFFA500)
             embed.add_field(name = "Author", value = f"{message_before.author.mention} ({message_before.author.id})", inline=True)
