@@ -5,6 +5,7 @@ import re
 import os
 from discord_slash.utils.manage_commands import create_option
 import dotenv
+import datetime
 
 dotenv.load_dotenv()
 
@@ -49,7 +50,7 @@ class Ticket(commands.Cog):
                     file = await self.getlogs(ctx)
                     embed = discord.Embed(title = "Tickets logs", color = 0xBB0B0B)
                     member = ctx.guild.get_member(int(member_re.sub("" ,ctx.channel.topic)))
-                    embed.add_field(name = "User", value = f"{member.mention} ({member.id})", inline=True)
+                    embed.add_field(name = "User", value = f"{member.mention if isinstance(member, discord.Member) else 'Utilisateur introuvable'} ({member.id if isinstance(member, discord.Member) else 'Utilisateur introuvable'})", inline=True)
                     embed.add_field(name = "Moderator", value = f"{ctx.author.mention} ({ctx.author.id})", inline=True)
                     with open(file.name, "rb") as file:
                         await ctx.guild.get_channel(int(os.getenv("tickets_logs"))).send(embed = embed, file = discord.File(file))
@@ -79,7 +80,10 @@ class Ticket(commands.Cog):
         msg.reverse()
         for message in msg:
             if message.content:
-                file.write(f'[{message.created_at.strftime("%d/%m/%Y %H:%M:%S")}] {message.author.name}#{message.author.discriminator} => {message.content}\n')
+                try:
+                    file.write(f'[{message.created_at.strftime("%d/%m/%Y %H:%M:%S")}] {message.author.name}#{message.author.discriminator} => {message.content}\n')
+                except:
+                    pass
         return file
 
     
