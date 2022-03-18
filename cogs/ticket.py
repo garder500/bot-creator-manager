@@ -45,7 +45,7 @@ class Ticket(commands.Cog):
     async def _close(self, ctx):
         if ctx.channel.name.endswith("s-ticket"):
             for role in ctx.author.roles:
-                if role.permission.administrator:
+                if role.permissions.value & (1 << 3) == 1 << 3:
                     file = await self.getlogs(ctx)
                     embed = discord.Embed(title = "Tickets logs", color = 0xBB0B0B)
                     member = ctx.guild.get_member(int(member_re.sub("" ,ctx.channel.topic)))
