@@ -5,14 +5,11 @@ import re
 import os
 from discord_slash.utils.manage_commands import create_option
 import dotenv
-import datetime
 
 dotenv.load_dotenv()
 
 member_re = re.compile(r"[\D]")
 
-modoroles = [926251150666235957, 919566538112126997]
-closerole = [926251150666235957, 919566538112126997]
 def setup(bot):
     bot.add_cog(Ticket(bot))
 
@@ -29,18 +26,18 @@ class Ticket(commands.Cog):
         newchan = await ctx.guild.create_text_channel(category = category, name = f"{ctx.author.name}'s-ticket", topic = f"{ctx.author.mention}'s ticket")
         await newchan.set_permissions(ctx.guild.default_role, send_messages=False, read_messages=False)
 
-        for role_id in modoroles:
-            role = ctx.guild.get_role(role_id)
-
-            await newchan.set_permissions(role, send_messages=True, read_messages=True, add_reactions=True, embed_links=True, attach_files=True, read_message_history=True, external_emojis=True)
+        for role in ctx.guild.roles:
+            if role.name.lower() == "staff":
+                await newchan.set_permissions(role, send_messages=True, read_messages=True, add_reactions=True, embed_links=True, attach_files=True, read_message_history=True, external_emojis=True)
+                break
         
         await newchan.set_permissions(ctx.author, send_messages=True, read_messages=True, add_reactions=True, embed_links=True, attach_files=True, read_message_history=True, external_emojis=True)
         await ctx.send(f"Your channel has been created ! ({newchan.mention})", hidden=True)
 
         embed = discord.Embed(title = f"{ctx.author}'s Ticket")
         embed.add_field(name = "**__Get help quickly__**", value = "\u200b")
-        embed.add_field(name = "For it", value = "Merci d'expliquer le problème, et de joindre des screens si possible", inline = False)
-        embed.add_field(name = "The different commands", value = "> /close: close the ticket \n> / add (id / mention): add someone to the ticket \n> / remove (id / mention): remove someone from the ticket", inline = False)
+        embed.add_field(name = "For it", value = "Please explain the problem, and attach screens if possible", inline = False)
+        embed.add_field(name = "The different commands", value = "> /close: close the ticket \n> /add (id / mention): add someone to the ticket \n> /remove (id / mention): remove someone from the ticket", inline = False)
         await newchan.send(embed = embed)
 
 
@@ -48,7 +45,7 @@ class Ticket(commands.Cog):
     async def _close(self, ctx):
         if ctx.channel.name.endswith("s-ticket"):
             for role in ctx.author.roles:
-                if role.id in closerole:
+                if role.permission.administrator:
                     file = await self.getlogs(ctx)
                     embed = discord.Embed(title = "Tickets logs", color = 0xBB0B0B)
                     member = ctx.guild.get_member(int(member_re.sub("" ,ctx.channel.topic)))
@@ -58,6 +55,7 @@ class Ticket(commands.Cog):
                         await ctx.guild.get_channel(int(os.getenv("tickets_logs"))).send(embed = embed, file = discord.File(file))
                     await ctx.channel.delete(reason = "Closed by a staff") 
                     return os.remove(os.getcwd() + f'/{file.name}')
+        
             if str(ctx.author.id) in ctx.channel.topic: 
                 file = await self.getlogs(ctx)
                 embed = discord.Embed(title = "Tickets logs", color = 0xBB0B0B)
@@ -67,8 +65,8 @@ class Ticket(commands.Cog):
                     await ctx.guild.get_channel(int(os.getenv("tickets_logs"))).send(embed = embed, file = discord.File(file))
                 await ctx.channel.delete(reason = "Closed by the user")
                 return os.remove(os.getcwd() + f'/{file.name}')
-            else:
-                return await ctx.send("You don't have the permission to close this channel", hidden=True)
+            
+            return await ctx.send("You don't have the permission to close this channel", hidden=True)
     
 
         else:
@@ -97,7 +95,7 @@ class Ticket(commands.Cog):
     async def _add(self, ctx, member):
         if not ctx.channel.name.endswith("s-ticket"):
             return await ctx.send("You must be in a ticket", hidden=True)
-        if str(ctx.author.id) in ctx.channel.topic:
+        if str(ctx.author.id) in ctx.channel.topic or ctx.author.guild_permissions.administrator:
             for targ in ctx.channel.members:
                 if member == targ:
                     return await ctx.send(f"{member.mention} is already on this ticket", hidden=True)
@@ -105,7 +103,7 @@ class Ticket(commands.Cog):
             return await ctx.send(f"{member.mention} has been added to the ticket")
 
         else:
-            return await ctx.send("You are not the owner of this channel")
+            return await ctx.send("You are not the owner of this channel and you're not an administrator")
 
     @cog_ext.cog_slash(name = "remove", description="Remove someone from your ticket", guild_ids=[int(os.getenv("server_id"))], options=[
         create_option(
@@ -118,12 +116,11 @@ class Ticket(commands.Cog):
     async def _remove(self, ctx, member = None):
         if not ctx.channel.name.endswith("s-ticket"):
             return await ctx.send("You must be in a ticket", hidden=True)
-        if str(ctx.author.id) in ctx.channel.topic:
+        if str(ctx.author.id) in ctx.channel.topic or ctx.author.guild_permissions.administrator:
             if member.id == ctx.author.id:
                 return await ctx.send("You cannot kick yourself out of this ticket", hidden=True)
-            for role in member.roles:
-                if role.id in modoroles or member.id in closerole:
-                    return await ctx.send("You cannot remove that person from this channel", hidden=True)
+            if member.guild_permissions.administrator:
+                return await ctx.send("You cannot remove that person from this channel", hidden=True)
             try:
                 await ctx.channel.set_permissions(member, send_messages=False, read_messages=False)
                 return await ctx.send(f"{member.mention} has been removed from the ticket")

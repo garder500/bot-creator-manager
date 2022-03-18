@@ -7,8 +7,6 @@ import os
 import dotenv
 import datetime
 
-from isort import file
-
 dotenv.load_dotenv()
 
 intents = discord.Intents.all()
